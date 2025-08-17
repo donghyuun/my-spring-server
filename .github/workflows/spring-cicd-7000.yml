@@ -1,0 +1,34 @@
+name: Java CICD
+'on':
+  workflow_dispatch: {
+    }
+  push:
+    branches:
+     - main
+# x_name: 워크플로우 기본 설정
+# x_description: GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.
+jobs:
+  ci-pipeline:
+    runs-on: ubuntu-latest
+#     x_name: Job 설정
+#     x_description: EC2 원격 배포
+    steps:
+     -
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.AWS_HOST_IP }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
+        port: ${{ secrets.REMOTE_SSH_PORT }}
+        script: |-
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker pull ${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest
+          docker stop bus-notice-v2
+          docker rm $(docker ps --filter 'status=exited' -a -q)
+          docker run -d --name bus-notice-v2 --log-driver=syslog --network bus-notice -p 8081:8080 --label co.elastic.logs/enabled=true --label co.elastic.logs/module=java ${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest
+#       x_name: Deploy to AWS EC2
+#       x_description: Docker 이미지를 EC2 서버에 배포하는 단계입니다.
+#       x_domain: aws
+#       x_task:
+#        - deploy
+# 
